@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RouteSphere | Connecting Businesses with Warehouses</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Noise grain overlay -->
+  <div class="grain-overlay" aria-hidden="true"></div>
+
+  <!-- Scanline overlay -->
+  <div class="scanlines" aria-hidden="true"></div>
+
+<!-- Plain curtain that hides the site until the intro finishes -->
+  <div class="intro-curtain" id="introCurtain"></div>
+
+  <!-- Twinkling stars behind the intro globe -->
+  <div class="stars-layer" id="starsLayer" aria-hidden="true"></div>
+
+  <!-- Scroll distance that drives the intro -->
+  <div class="intro-spacer" id="introSpacer"></div>
+
+  <!-- Persistent globe: starts centered, glides to the side, stays there rotating -->
+  <div class="globe-fixed" id="globeFixed">
+    <canvas id="globe-canvas"></canvas>
+    <svg class="globe-plane-layer" id="globePlaneLayer" viewBox="0 0 520 520" aria-hidden="true">
+      <path id="planeTrailPath" class="plane-trail-path" d="M30,480 Q140,180 280,90 T500,210" fill="none" />
+      <g id="introPlane" class="intro-plane">
+       <path d="M-10.5,25 L-5.8,25 L7.2,3.8 L20.5,3.8 L24.4,-0.2 L20.5,-3.8 L7.2,-3.8 L-5.8,-25 L-10.5,-25 L-4.2,-3.8 L-18.5,-3.8 L-22.7,-10 L-26.3,-10 L-23.6,-0.2 L-26.3,9.7 L-22.7,9.7 L-18.5,3.4 L-4.2,3.4 Z"/>
+      </g>
+    </svg>
+  </div>
+
+<!-- Small logo that grows to fill the screen, then fades to reveal the site -->
+  <div class="globe-intro-logo" id="globeIntroLogo">Route<span>Sphere</span></div>
+
+  <!-- ══════════════════════ TOPBAR ══════════════════════ -->
+<header class="topbar">
+    <nav class="topbar-nav">
+      <div class="topbar-links">
+        <button id="homeButton" class="topbar-link">Home</button>
+        <button data-panel="about" class="topbar-link">About</button>
+        <button data-panel="contact" class="topbar-link">Contact</button>
+      </div>
+      <div class="topbar-brand" id="topbarBrand">Route<span class="brand-accent">Sphere</span></div>
+    </nav>
+</header>
+
+  <div class="site-content" id="siteContent">
+
+  <!-- ══════════════════════ PANELS ══════════════════════ -->
+  <div class="panel overlay hidden" id="aboutPanel">
+    <div class="panel-content">
+      <div class="panel-header">
+        <h2>About <span class="text-accent">RouteSphere</span></h2>
+        <button class="panel-close" data-close="panel">×</button>
+      </div>
+      <p>RouteSphere is redefining how businesses make supply chain decisions. We bridge the gap between emerging businesses and logistics infrastructure, providing seamless access to verified warehouse spaces across the globe.</p>
+      <p>Our platform combines real-time market data, AI-powered matching algorithms, and industry insights to help you find the perfect warehouse partner for your growing business needs.</p>
+      <p>We understand the challenges startups face in scaling their operations. By making these trade-offs transparent and understandable, RouteSphere gives businesses the clarity and confidence to scale smarter.</p>
+    </div>
+  </div>
+
+  <div class="panel overlay hidden" id="contactPanel">
+    <div class="panel-content">
+      <div class="panel-header">
+        <h2>Contact <span class="text-accent">RouteSphere</span></h2>
+        <button class="panel-close" data-close="panel">×</button>
+      </div>
+      <p>We'd love to hear from you. Whether you're exploring smarter sourcing solutions, interested in partnering, or have a media inquiry, reach out anytime.</p>
+      <div class="contact-details">
+        <p>📧 <a href="mailto:routesphere26@gmail.com">routesphere26@gmail.com</a></p>
+        <p>📍 Michigan, USA</p>
+      </div>
+      <div class="social-grid">
+        <div class="social-card">
+          <a href="https://www.instagram.com/routesphere_mi" target="_blank" rel="noopener" class="social-link">
+            <div class="social-icon instagram-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" fill="currentColor"/>
+              </svg>
+            </div>
+          </a>
+          <div class="social-label">Instagram</div>
+        </div>
+        <div class="social-card">
+          <a href="https://x.com/routespheremi" target="_blank" rel="noopener" class="social-link">
+            <div class="social-icon x-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="currentColor"/>
+              </svg>
+            </div>
+          </a>
+          <div class="social-label">X / Twitter</div>
+        </div>
+        <div class="social-card">
+          <a href="https://www.linkedin.com/in/routesphere-mi-480985403/" target="_blank" rel="noopener" class="social-link">
+            <div class="social-icon linkedin-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" fill="currentColor"/>
+              </svg>
+            </div>
+          </a>
+          <div class="social-label">LinkedIn</div>
+        </div>
+      </div>
+      <p class="response-time">⏱ We typically respond within 24–48 hours</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ MAIN ══════════════════════ -->
+  <main>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-bg-lines" aria-hidden="true">
+        <div class="hbl hbl-1"></div>
+        <div class="hbl hbl-2"></div>
+        <div class="hbl hbl-3"></div>
+        <div class="hbl hbl-4"></div>
+      </div>
+      <div class="hero-orbs" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+      </div>
+
+      <div class="hero-copy">
+        <p class="hero-eyebrow">Global Logistics Intelligence</p>
+        <h1 class="hero-title">
+          <span class="ht-line ht-line-1">CONNECTING</span>
+          <span class="ht-line ht-line-2">BUSINESSES</span>
+          <span class="ht-line ht-line-3 accent-line">WITH WAREHOUSES</span>
+        </h1>
+        <p class="hero-desc">The platform for emerging businesses to discover, connect, and partner with verified warehouse facilities worldwide. Real-time pricing, instant matching, seamless logistics.</p>
+        <div class="hero-cta-row">
+          <a href="#get-started" class="cta-primary">Find a Warehouse</a>
+          <a href="#live-insights" class="cta-secondary">Live Market Data →</a>
+        </div>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-num">500+</span>
+          <span class="stat-label">Warehouses</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">6</span>
+          <span class="stat-label">Industries</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE INSIGHTS -->
+    <section class="live-insights" id="live-insights">
+      <div class="section-tag">Live Feed</div>
+      <div class="live-header">
+        <div class="live-header-left">
+          <h2 class="live-title">MARKET<br/><em>INSIGHTS</em></h2>
+          <p class="live-sub">Real-time data · <span id="insightsCountdown">Updated every 10s</span></p>
+        </div>
+        <div class="live-header-right">
+          <label class="live-insights-dropdown">
+            <span>Industry</span>
+            <select id="industrySelect">
+              <option value="textiles">Textiles</option>
+              <option value="electronics">Electronics</option>
+              <option value="foodbeverage">Food & Beverage</option>
+              <option value="pharmaceuticals">Pharmaceuticals</option>
+              <option value="automotiveparts">Automotive Parts</option>
+              <option value="generalgoods">General Goods</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="insight-cards" id="insightsCards"></div>
+    </section>
+
+    <!-- TRUSTED -->
+    <section class="trusted-section">
+      <div class="trusted-panel">
+        <div class="trusted-label">Our Network</div>
+        <h3 class="trusted-title">COMMUNITY <span class="text-accent">PARTNERS</span></h3>
+        <p class="trusted-subtitle">More To Come Soon</p>
+      </div>
+    </section>
+
+    <!-- GET STARTED -->
+    <section class="get-started" id="get-started">
+      <div class="section-tag">Get Started</div>
+      <div class="get-started-header">
+        <h2 class="gs-title">FIND YOUR IDEAL<br/><span class="text-accent">WAREHOUSE PARTNER</span></h2>
+      </div>
+
+      <form id="filterForm" class="filter-form">
+        <div class="location-block">
+          <div class="location-header">
+            <span class="pin-icon" aria-hidden="true">📍</span>
+            <div>
+              <p class="location-label">Location Preference</p>
+              <p class="location-hint">Any city, small town, rural area, or anywhere in the world.</p>
+            </div>
+          </div>
+          <input type="hidden" name="locationPreference" id="locationPreference" value="specific" />
+          <div class="location-buttons">
+            <button type="button" id="specificLocationBtn" class="location-option active">Specific Location</button>
+            <button type="button" id="dontCareBtn" class="location-option">Don't Care</button>
+          </div>
+          <div class="location-fields" id="locationFields">
+            <label>City / Town / Location
+              <input name="location" id="locationInput" placeholder="Detroit, Harlem, small town, anywhere" />
+            </label>
+            <label>Country
+              <input name="country" id="countryInput" placeholder="Country name" />
+            </label>
+            <label class="state-field hidden" id="stateField">State
+              <select name="state" id="stateSelect">
+                <option value="">Select state</option>
+                <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option>
+                <option value="AR">Arkansas</option><option value="CA">California</option><option value="CO">Colorado</option>
+                <option value="CT">Connecticut</option><option value="DE">Delaware</option><option value="FL">Florida</option>
+                <option value="GA">Georgia</option><option value="HI">Hawaii</option><option value="ID">Idaho</option>
+                <option value="IL">Illinois</option><option value="IN">Indiana</option><option value="IA">Iowa</option>
+                <option value="KS">Kansas</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option>
+                <option value="ME">Maine</option><option value="MD">Maryland</option><option value="MA">Massachusetts</option>
+                <option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="MS">Mississippi</option>
+                <option value="MO">Missouri</option><option value="MT">Montana</option><option value="NE">Nebraska</option>
+                <option value="NV">Nevada</option><option value="NH">New Hampshire</option><option value="NJ">New Jersey</option>
+                <option value="NM">New Mexico</option><option value="NY">New York</option><option value="NC">North Carolina</option>
+                <option value="ND">North Dakota</option><option value="OH">Ohio</option><option value="OK">Oklahoma</option>
+                <option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="RI">Rhode Island</option>
+                <option value="SC">South Carolina</option><option value="SD">South Dakota</option><option value="TN">Tennessee</option>
+                <option value="TX">Texas</option><option value="UT">Utah</option><option value="VT">Vermont</option>
+                <option value="VA">Virginia</option><option value="WA">Washington</option><option value="WV">West Virginia</option>
+                <option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
+              </select>
+            </label>
+            <label>Radius (miles)
+              <input type="number" name="radius" id="radiusInput" min="0" step="any" placeholder="e.g. 25" />
+            </label>
+          </div>
+        </div>
+
+        <div class="range-row">
+          <label>Price Min ($)<input type="number" name="priceMin" min="0" step="100" placeholder="0" /></label>
+          <label>Price Max ($)<input type="number" name="priceMax" min="0" step="100" placeholder="50000" /></label>
+        </div>
+        <div class="range-row">
+          <label>Size Min (sq ft)<input type="number" name="sizeMin" min="0" step="100" placeholder="0" /></label>
+          <label>Size Max (sq ft)<input type="number" name="sizeMax" min="0" step="100" placeholder="10000" /></label>
+        </div>
+
+        <div class="filter-row">
+          <label class="autocomplete-field">Availability
+            <input type="text" name="availability" id="availabilityInput" placeholder="Search availability" autocomplete="off" />
+            <div class="autocomplete-help hidden" id="availabilityHelper"></div>
+          </label>
+          <label class="autocomplete-field">Material
+            <input type="text" name="material" id="materialInput" placeholder="e.g. beds, batteries, electronics" autocomplete="off" />
+            <div class="autocomplete-help hidden" id="materialHelper"></div>
+          </label>
+          <label>Type
+            <select name="type">
+              <option value="">Select warehouse type</option>
+              <option value="any">No Preference</option>
+              <option value="climate-controlled">Climate Controlled</option>
+              <option value="cold-storage">Cold Storage</option>
+              <option value="dry-storage">Dry Storage</option>
+              <option value="hazmat-certified">Hazmat Certified</option>
+              <option value="distribution-center">Distribution Center</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="primary-button">Search Warehouses</button>
+          <button type="button" id="resetFilters" class="secondary-button">Reset</button>
+        </div>
+      </form>
+
+      <div id="searchWarning" class="search-warning hidden"></div>
+      <div class="filter-results" id="filterResults"></div>
+    </section>
+  </main>
+
+  <!-- LOADING OVERLAY -->
+  <div class="loading-overlay hidden" id="loadingOverlay" role="dialog" aria-modal="true">
+    <div class="loading-panel">
+      <button class="loading-close" id="loadingClose" aria-label="Close">×</button>
+      <div class="loading-icon">
+        <svg viewBox="0 0 120 120" fill="none">
+          <circle cx="60" cy="60" r="40" stroke="rgba(255,107,71,0.3)" stroke-width="3" fill="none"/>
+          <circle cx="60" cy="60" r="40" stroke="rgba(255,107,71,0.9)" stroke-width="3" fill="none" stroke-dasharray="60 190" stroke-linecap="round">
+            <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="1.2s" repeatCount="indefinite"/>
+          </circle>
+          <circle cx="60" cy="60" r="20" fill="rgba(255,107,71,0.12)"/>
+          <circle cx="60" cy="60" r="6" fill="rgba(255,107,71,0.8)"/>
+        </svg>
+      </div>
+      <p class="loading-message fade-in" id="loadingMessage">Scanning Warehouses...</p>
+      <button id="viewResultsButton" class="primary-button hidden">View Your Results →</button>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <section class="results-screen hidden" id="resultsScreen">
+    <button class="results-close" id="resultsClose" aria-label="Close results">×</button>
+    <div class="results-screen-inner">
+      <div class="results-header">
+        <h2>Your Warehouse Results</h2>
+        <p>Your top 3 matches, scored and ranked by real ratings, reviews, and AI evaluation.</p>
+      </div>
+      <div class="filter-results" id="resultsList"></div>
+    </div>
+  </section>
+
+  <!-- AI CHAT -->
+  <aside class="ai-chat" id="aiChat">
+    <button id="chatToggle" class="chat-launch" aria-label="Open AI chat">
+  <svg viewBox="0 0 80 80" class="stick-figure" aria-hidden="true">
+        <g transform="translate(40,40) rotate(-45)">
+<path d="M-10.5,25 L-5.8,25 L7.2,3.8 L20.5,3.8 L24.4,-0.2 L20.5,-3.8 L7.2,-3.8 L-5.8,-25 L-10.5,-25 L-4.2,-3.8 L-18.5,-3.8 L-22.7,-10 L-26.3,-10 L-23.6,-0.2 L-26.3,9.7 L-22.7,9.7 L-18.5,3.4 L-4.2,3.4 Z" fill="#ff6b47"/>
+        </g>
+      </svg>
+    </button>
+    <div class="chat-window hidden" id="chatWindow">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <h3>RouteSphere AI</h3>
+          <p>Ask anything about warehouses, logistics &amp; more.</p>
+        </div>
+        <button class="chat-close" id="chatClose" aria-label="Close chat">×</button>
+      </div>
+      <div class="chat-body" id="chatBody">
+        <div class="chat-message assistant"><span>Hi! I'm your route helper. Ask me anything about warehouses, startups, logistics, or market insights.</span></div>
+      </div>
+      <form class="chat-form" id="chatForm">
+        <input id="chatInput" type="text" placeholder="Ask anything..." autocomplete="off" />
+        <button type="submit" class="chat-send" aria-label="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  </div> <!-- /#siteContent -->
+
+  <!-- Globe / Intro Script -->
+  <script>
+  (function () {
+    const canvas = document.getElementById('globe-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const SIZE = 520;
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const R  = SIZE * 0.46;
+    const cx = SIZE * 0.5;
+    const cy = SIZE * 0.5;
+    let rotation = 0;
+    let dullness = 0; // 0 = full brightness (centered), 1 = fully dulled (parked on the side)
+
+    const continents = [
+      [[-168,71],[-140,71],[-120,75],[-85,73],[-65,68],[-55,58],[-55,47],[-65,44],[-70,42],[-75,35],[-80,25],[-88,16],[-83,10],[-78,8],[-72,12],[-68,22],[-90,16],[-95,19],[-104,19],[-110,24],[-120,32],[-118,34],[-122,37],[-124,49],[-130,54],[-140,60],[-152,60],[-160,60],[-165,62],[-168,65]],
+      [[-45,83],[-20,83],[-18,77],[-25,69],[-45,60],[-55,64],[-50,72],[-45,83]],
+      [[-80,10],[-78,2],[-50,-5],[-35,-10],[-35,-23],[-55,-34],[-65,-42],[-68,-55],[-62,-52],[-55,-35],[-48,-28],[-40,-20],[-42,-5],[-52,4],[-60,8],[-72,12],[-80,10]],
+      [[-10,36],[0,44],[8,45],[18,40],[30,37],[30,47],[25,55],[20,60],[28,65],[30,70],[20,72],[10,63],[5,58],[0,52],[-8,48],[-10,44],[-10,36]],
+      [[-18,15],[-8,5],[0,5],[10,5],[20,2],[30,-2],[40,10],[50,12],[42,20],[42,30],[38,38],[25,38],[10,38],[0,30],[-5,20],[-18,15]],
+      [[28,45],[42,42],[52,32],[60,24],[70,22],[80,10],[100,10],[115,22],[125,30],[130,42],[140,50],[145,58],[140,65],[120,70],[100,72],[80,70],[60,68],[50,60],[40,55],[30,60],[20,60],[28,55],[28,45]],
+      [[130,33],[134,34],[138,38],[142,44],[142,40],[138,36],[134,34],[130,33]],
+      [[114,-22],[118,-20],[130,-14],[138,-14],[148,-18],[152,-24],[150,-38],[144,-38],[130,-34],[115,-34],[114,-28],[114,-22]],
+      [[166,-46],[168,-45],[172,-42],[174,-37],[172,-37],[168,-42],[166,-46]],
+      [[-6,50],[0,50],[2,53],[0,58],[-5,58],[-8,55],[-6,50]]
+    ];
+
+    function project(lon, lat, rot) {
+      const lng = (lon * Math.PI / 180) + rot;
+      const la  = lat * Math.PI / 180;
+      return {
+        x: cx + R * Math.cos(la) * Math.sin(lng),
+        y: cy - R * Math.sin(la),
+        z: Math.cos(la) * Math.cos(lng)
+      };
+    }
+
+    function draw(rot) {
+      const bright = 1 - dullness * 0.55;
+      ctx.clearRect(0, 0, SIZE, SIZE);
+      const g = ctx.createRadialGradient(cx + R*0.25, cy - R*0.25, R*0.08, cx, cy, R);
+      g.addColorStop(0,   `rgba(255,95,55,${0.32*bright})`);
+      g.addColorStop(0.5, `rgba(170,65,25,${0.30*bright})`);
+      g.addColorStop(1,   `rgba(9,6,14,0.55)`);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, SIZE, SIZE);
+      ctx.clip();
+      ctx.strokeStyle = `rgba(255,150,100,${0.32*bright})`;
+      ctx.lineWidth = 0.8;
+
+      for (let i = 0; i < 12; i++) {
+        const lng = (i/12)*Math.PI*2 + rot;
+        ctx.beginPath();
+        let first = true;
+        for (let la = -Math.PI/2; la <= Math.PI/2; la += 0.04) {
+          const z = Math.cos(la)*Math.cos(lng);
+          if (z < 0) { first = true; continue; }
+          const x = cx + R*Math.cos(la)*Math.sin(lng);
+          const y = cy - R*Math.sin(la);
+          ctx.globalAlpha = (z*0.4+0.08) * bright;
+          first ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+          first = false;
+        }
+        ctx.globalAlpha = 1;
+        ctx.stroke();
+      }
+
+      for (let j = 1; j < 9; j++) {
+        const la = (j/9)*Math.PI - Math.PI/2;
+        const r2 = R*Math.cos(la);
+        const py = cy - R*Math.sin(la);
+        ctx.beginPath();
+        let first = true;
+        for (let lng2 = 0; lng2 <= Math.PI*2; lng2 += 0.04) {
+          const z = Math.cos(la)*Math.cos(lng2+rot);
+          if (z < 0) { first = true; continue; }
+          const x = cx + r2*Math.sin(lng2+rot);
+          ctx.globalAlpha = (z*0.35+0.07) * bright;
+          first ? ctx.moveTo(x,py) : ctx.lineTo(x,py);
+          first = false;
+        }
+        ctx.globalAlpha = 1;
+        ctx.stroke();
+      }
+
+      ctx.lineWidth = 1.4;
+      continents.forEach(poly => {
+        let zSum = 0;
+        poly.forEach(([lon,lat]) => { zSum += project(lon,lat,rot).z; });
+        const zAvg = zSum / poly.length;
+        if (zAvg < -0.15) return;
+        const alpha = Math.max(0, Math.min(1, zAvg*1.2+0.15));
+        ctx.beginPath();
+        let started = false;
+        for (let i = 0; i < poly.length; i++) {
+          const p = project(poly[i][0], poly[i][1], rot);
+          if (i > 0) {
+            const prev = project(poly[i-1][0], poly[i-1][1], rot);
+            if (Math.abs(p.x - prev.x) > R*0.8) {
+              ctx.stroke(); ctx.fill(); ctx.beginPath(); started = false;
+            }
+          }
+          if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+          else { ctx.lineTo(p.x, p.y); }
+        }
+        ctx.closePath();
+        ctx.globalAlpha = alpha * bright;
+        ctx.fillStyle = 'rgba(255,110,60,0.24)';
+        ctx.strokeStyle = 'rgba(255,175,125,0.90)';
+        ctx.fill();
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+
+      ctx.restore();
+    }
+
+    draw(0);
+
+    // ── INTRO SEQUENCE ──────────────────────────────────────────
+    // Phase 1 (0 → PLANE_END): plane flies over the centered globe, trail draws in.
+    // Phase 2 (PLANE_END → GLIDE_END): globe glides to the side, logo grows to fill the screen.
+    // Phase 3 (GLIDE_END → 1): logo shrinks back down and settles into the topbar's
+    // center slot; the curtain fades out over the same stretch, revealing the site.
+   const curtain      = document.getElementById('introCurtain');
+    const spacer       = document.getElementById('introSpacer');
+    const stage        = document.getElementById('globeFixed');
+    const plane        = document.getElementById('introPlane');
+    const trailPath    = document.getElementById('planeTrailPath');
+    const logo         = document.getElementById('globeIntroLogo');
+    const siteContent  = document.getElementById('siteContent');
+    const topbarBrand  = document.getElementById('topbarBrand');
+
+    const isMobile = window.matchMedia('(max-width: 600px)').matches;
+
+    if (siteContent) {
+      if (isMobile) siteContent.classList.remove('intro-active');
+      else siteContent.classList.add('intro-active');
+    }
+
+    // Lets nav clicks / the results screen force the intro to a finished
+    // state immediately, instead of waiting for the scroll-driven animation.
+    // Also collapses the scroll spacer so those flows don't leave a big gap
+    // above the content — natural scroll-through leaves the spacer alone.
+    let forceFinished = false;
+window.RS_finishIntro = function () {
+      if (forceFinished) return;
+      forceFinished = true;
+      if (curtain) { curtain.style.opacity = '0'; curtain.style.pointerEvents = 'none'; }
+      if (siteContent) siteContent.classList.remove('intro-active');
+      if (stage) stage.style.display = 'none';
+      if (spacer) spacer.style.height = '0px';
+      if (logo && topbarBrand) {
+        // Snap the growing logo straight to its settled, topbar-aligned state
+        // (matches where the scroll-driven animation would leave it at 100%).
+        const rect = topbarBrand.getBoundingClientRect();
+        const settleY = (rect.top + rect.height / 2) - window.innerHeight / 2;
+        logo.style.fontSize = '15px';
+        logo.style.top = `calc(50% + ${settleY}px)`;
+        logo.style.letterSpacing = '0.12em';
+      }
+    };
+
+    if (!isMobile && curtain && spacer && stage && plane && trailPath && logo && siteContent && topbarBrand) {
+      const trailLength = trailPath.getTotalLength();
+      trailPath.style.strokeDasharray  = trailLength;
+      trailPath.style.strokeDashoffset = trailLength;
+
+      const PLANE_END = 0.26;
+      const GLIDE_END  = 0.62;
+      const SMOOTHING  = 0.14;
+
+      let curX = null, curY = null, curFont = 13, curLogoY = 220, curLS = 0.14;
+      let siteInteractive = false;
+      const lerp    = (a, b, t) => a + (b - a) * t;
+      const clamp01 = v => Math.min(1, Math.max(0, v));
+
+      function introDistance() { return Math.max(1, spacer.offsetHeight); }
+
+      function sideTargets() {
+        const boxW = stage.offsetWidth  || 520;
+        const boxH = stage.offsetHeight || 520;
+        const centerX = window.innerWidth  / 2 - boxW / 2;
+        const centerY = window.innerHeight / 2 - boxH / 2;
+        const sideX   = -(boxW + 80);
+        return { centerX, centerY, sideX };
+      }
+
+      // Replays the intro from its pristine pre-scroll state — curtain opaque,
+      // globe alone and centered, page text hidden underneath — exactly like
+      // a first-time visit. Used by Home so it never leaves the globe sitting
+      // on top of already-revealed page content.
+ window.RS_replayIntro = function () {
+        forceFinished  = false;
+        siteInteractive = false;
+        curtain.style.opacity = '1';
+        curtain.style.pointerEvents = 'auto';
+        siteContent.classList.add('intro-active');
+        spacer.style.height = '';
+        stage.style.display = '';
+        stage.style.opacity = '1';
+        logo.style.fontSize = '13px';
+        logo.style.top = 'calc(50% + 220px)';
+        logo.style.letterSpacing = '0.14em';
+        const { centerX, centerY } = sideTargets();
+        curX = centerX;
+        curY = centerY;
+        curFont  = 13;
+        curLogoY = 220;
+        curLS    = 0.14;
+        stage.style.transform = `translate(${centerX}px, ${centerY}px)`;
+      };
+
+      function update() {
+        if (forceFinished) { requestAnimationFrame(update); return; }
+        const progress       = clamp01(window.scrollY / introDistance());
+        const planeProgress  = clamp01(progress / PLANE_END);
+        const glideProgress  = clamp01((progress - PLANE_END) / (GLIDE_END - PLANE_END));
+        const settleProgress = clamp01((progress - GLIDE_END) / (1 - GLIDE_END));
+        const { centerX, centerY, sideX } = sideTargets();
+
+        const targetX = lerp(centerX, sideX, glideProgress);
+        const targetY = centerY;
+        if (curX === null) { curX = targetX; curY = targetY; }
+        curX = lerp(curX, targetX, SMOOTHING);
+        curY = lerp(curY, targetY, SMOOTHING);
+        stage.style.transform = `translate(${curX}px, ${curY}px)`;
+        stage.style.opacity   = String(1 - glideProgress);
+
+        if (planeProgress <= 0) {
+          plane.style.opacity = '0';
+          trailPath.style.strokeDashoffset = trailLength;
+        } else {
+          const point  = trailPath.getPointAtLength(trailLength * planeProgress);
+          const ahead  = trailPath.getPointAtLength(Math.min(trailLength, trailLength * planeProgress + 1));
+          const angle  = Math.atan2(ahead.y - point.y, ahead.x - point.x) * (180 / Math.PI);
+          const fadeIn  = Math.min(1, planeProgress / 0.08);
+          const fadeOut = Math.min(1, (1 - planeProgress) / 0.08);
+          plane.style.opacity = String(Math.min(fadeIn, fadeOut));
+          plane.setAttribute('transform', `translate(${point.x},${point.y}) rotate(${angle})`);
+          trailPath.style.strokeDashoffset = trailLength * (1 - planeProgress);
+        }
+
+        // Logo: grows to fill the screen through the glide, then shrinks back
+        // down and settles into the topbar's center slot through phase 3.
+        const rect    = topbarBrand.getBoundingClientRect();
+        const settleY = (rect.top + rect.height / 2) - window.innerHeight / 2;
+
+        const glideFontTarget = lerp(13, Math.min(window.innerWidth * 0.17, 200), glideProgress);
+        const glideYTarget    = lerp(220, 0, glideProgress);
+        const glideLSTarget   = lerp(0.14, -0.01, glideProgress);
+
+        const fontTarget = lerp(glideFontTarget, 15, settleProgress);
+        const yTarget    = lerp(glideYTarget, settleY, settleProgress);
+        const lsTarget   = lerp(glideLSTarget, 0.12, settleProgress);
+
+        curFont  = lerp(curFont, fontTarget, SMOOTHING);
+        curLogoY = lerp(curLogoY, yTarget, SMOOTHING);
+        curLS    = lerp(curLS, lsTarget, SMOOTHING);
+        logo.style.fontSize      = curFont + 'px';
+        logo.style.top           = `calc(50% + ${curLogoY}px)`;
+        logo.style.letterSpacing = curLS + 'em';
+
+        dullness = glideProgress <= 0.5 ? 0 : clamp01((glideProgress - 0.5) / 0.5);
+
+curtain.style.opacity = String(1 - settleProgress);
+
+        const done = forceFinished || settleProgress >= 0.98;
+        if (done !== siteInteractive) {
+          siteInteractive = done;
+          curtain.style.pointerEvents = done ? 'none' : 'auto';
+          siteContent.classList.toggle('intro-active', !done);
+          stage.style.display = done ? 'none' : '';
+        }
+
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+
+      // Clicking the settled logo replays the intro, auto-scrolling
+      // through it and landing back on the sprawled header layout.
+      window.RS_replayAndSettle = function () {
+        window.RS_replayIntro();
+        const target = introDistance();
+        const duration = 1800;
+        const startTime = performance.now();
+        function step(now) {
+          const t = Math.min(1, (now - startTime) / duration);
+          const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+          window.scrollTo(0, target * eased);
+          if (t < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      };
+
+     if (topbarBrand) {
+        topbarBrand.style.pointerEvents = 'auto';
+        topbarBrand.style.cursor = 'pointer';
+        topbarBrand.addEventListener('click', () => window.RS_replayAndSettle());
+      }
+    }
+
+    window.addEventListener('scroll', function() {
+      rotation = window.scrollY * 0.004;
+      draw(rotation);
+    }, { passive: true });
+  })();
+  </script>
+
+  <script src="script.js"></script>
+</body>
+</html>
