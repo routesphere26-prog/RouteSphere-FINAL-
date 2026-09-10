@@ -1,7 +1,7 @@
 /* ============================================================
    RouteSphere — site interactivity
    (Globe intro animation lives inline in index.html; everything
-   else — nav, filters, live insights, chat — lives here.)
+   else — nav, filters, live insights — lives here.)
    ============================================================ */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initAutocompleteFields();
   initFilterForm();
   initLiveInsights();
-  initAiChat();
 });
 
 /* ------------------------------------------------------------
@@ -240,36 +239,66 @@ function initFilterForm() {
 
   loadingClose?.addEventListener('click', hideLoadingOverlay);
 
+  const REQUIRED_FIELDS = [
+    { key: 'priceMin', label: 'Price Min ($)' },
+    { key: 'priceMax', label: 'Price Max ($)' },
+    { key: 'sizeMin', label: 'Size Min (sq ft)' },
+    { key: 'sizeMax', label: 'Size Max (sq ft)' },
+    { key: 'availability', label: 'Availability' },
+    { key: 'material', label: 'Material' },
+    { key: 'type', label: 'Type' }
+  ];
+
+  function showWarning(text) {
+    warning.textContent = text;
+    warning.classList.remove('hidden');
+    warning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     warning.classList.add('hidden');
 
     const data = new FormData(form);
+    const locationPreference = data.get('locationPreference') || 'specific';
+    const location = (data.get('location') || '').trim();
+    const country = (data.get('country') || '').trim();
+
+    const missing = REQUIRED_FIELDS
+      .filter(f => !String(data.get(f.key) || '').trim())
+      .map(f => f.label);
+
+    if (locationPreference === 'specific' && !location && !country) {
+      missing.unshift('Location');
+    }
+
+    if (missing.length) {
+      showWarning(`Please fill out the following before searching: ${missing.join(', ')}.`);
+      return;
+    }
+
     const criteria = {
-      locationPreference: data.get('locationPreference') || 'specific',
-      location: (data.get('location') || '').trim(),
-      country: (data.get('country') || '').trim(),
+      locationPreference,
+      location,
+      country,
       state: data.get('state') || '',
       radius: data.get('radius') || '',
-      priceMin: Number(data.get('priceMin')) || 0,
-      priceMax: Number(data.get('priceMax')) || 50000,
-      sizeMin: Number(data.get('sizeMin')) || 0,
-      sizeMax: Number(data.get('sizeMax')) || 10000,
+      priceMin: Number(data.get('priceMin')),
+      priceMax: Number(data.get('priceMax')),
+      sizeMin: Number(data.get('sizeMin')),
+      sizeMax: Number(data.get('sizeMax')),
       availability: (data.get('availability') || '').trim(),
       material: (data.get('material') || '').trim(),
       type: data.get('type') || ''
     };
 
-    if (criteria.locationPreference === 'specific' && !criteria.location && !criteria.country) {
-      warning.textContent = 'Add a location or country, or switch to "Don\'t Care" to search everywhere.';
-      warning.classList.remove('hidden');
-      warning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (criteria.priceMin > criteria.priceMax) {
+      showWarning('Price Min can\'t be greater than Price Max.');
       return;
     }
 
-    if (criteria.priceMax && criteria.priceMin > criteria.priceMax) {
-      warning.textContent = 'Price Min can\'t be greater than Price Max.';
-      warning.classList.remove('hidden');
+    if (criteria.sizeMin > criteria.sizeMax) {
+      showWarning('Size Min can\'t be greater than Size Max.');
       return;
     }
 
@@ -322,14 +351,14 @@ function initFilterForm() {
 
 function renderResultsSummary(container, warehouses, criteria) {
   container.innerHTML = '';
+  if (warehouses.length) return;
+
   const summary = document.createElement('p');
   summary.className = 'results-summary';
   const where = criteria.locationPreference === 'any'
     ? 'anywhere'
     : [criteria.location, criteria.state, criteria.country].filter(Boolean).join(', ') || 'your area';
-  summary.textContent = warehouses.length
-    ? `Your top ${warehouses.length} matches near ${where}, ranked by real ratings, reviews, and AI evaluation. Scroll down or click "View Your Results" for full details.`
-    : `No matching warehouses found near ${where}. Try widening your search criteria.`;
+  summary.textContent = `No matching warehouses found near ${where}. Try widening your search criteria.`;
   container.appendChild(summary);
 }
 
@@ -372,11 +401,6 @@ function renderWarehouseCards(container, warehouses) {
         <span class="warehouse-stars">${stars}</span>
         <span>${rating.toFixed(1)}</span>
         <span class="warehouse-review-count">(${(w.reviewCount || 0).toLocaleString()} reviews)</span>
-      </div>
-      <div class="warehouse-tags">
-        <span class="warehouse-tag">${escapeHtml(w.type)}</span>
-        <span class="warehouse-tag">${escapeHtml(w.material)}</span>
-        <span class="warehouse-tag">${escapeHtml(w.availability)}</span>
       </div>
       <p class="warehouse-summary"><strong>AI Summary —</strong> ${escapeHtml(w.summary)}</p>
       <p class="warehouse-reason"><strong>Why #${i + 1} —</strong> ${escapeHtml(w.reason)}</p>
@@ -457,71 +481,3 @@ function initLiveInsights() {
   }, 1000);
 }
 
-/* ------------------------------------------------------------
-   AI Chat widget
-   ------------------------------------------------------------ */
-
-function initAiChat() {
-  const toggle = document.getElementById('chatToggle');
-  const closeBtn = document.getElementById('chatClose');
-  const chatWindow = document.getElementById('chatWindow');
-  const form = document.getElementById('chatForm');
-  const input = document.getElementById('chatInput');
-  const body = document.getElementById('chatBody');
-  if (!toggle || !chatWindow || !form || !input || !body) return;
-
-  toggle.addEventListener('click', () => {
-    chatWindow.classList.toggle('hidden');
-    if (!chatWindow.classList.contains('hidden')) input.focus();
-  });
-
-  closeBtn?.addEventListener('click', () => chatWindow.classList.add('hidden'));
-
-  function addMessage(text, role) {
-    const msg = document.createElement('div');
-    msg.className = `chat-message ${role} fade-in`;
-    const span = document.createElement('span');
-    span.textContent = text;
-    msg.appendChild(span);
-    body.appendChild(msg);
-    body.scrollTop = body.scrollHeight;
-    return msg;
-  }
-
-  function replyTo(text) {
-    const lower = text.toLowerCase();
-    if (/hi|hello|hey/.test(lower)) {
-      return "Hey there! I can help you think through warehouse types, pricing ranges, or how to use the filters above. What are you working on?";
-    }
-    if (/price|cost|expensive|budget/.test(lower)) {
-      return "Warehouse pricing usually depends on location, size, and storage type (cold storage and hazmat run higher). Try the Price Min/Max fields in the Get Started section to narrow things down.";
-    }
-    if (/location|where|city|country/.test(lower)) {
-      return "You can search a specific city, state, and country — or pick \"Don't Care\" if you're flexible on location and just want the best match.";
-    }
-    if (/industry|textile|electronic|food|pharma|automotive/.test(lower)) {
-      return "Check the Live Market Insights section — you can switch industries there to see live demand, capacity, and pricing trends update in real time.";
-    }
-    if (/contact|email|reach/.test(lower)) {
-      return "You can reach the RouteSphere team at routesphere26@gmail.com, or check the Contact panel in the top nav for our socials.";
-    }
-    if (/thank/.test(lower)) {
-      return "Anytime! Good luck with the search.";
-    }
-    return "Good question — I'm a lightweight demo assistant for now, but I can point you toward the filters, live insights, or contact info. What would help most?";
-  }
-
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    addMessage(text, 'user');
-    input.value = '';
-
-    const typing = addMessage('Typing...', 'assistant typing');
-    setTimeout(() => {
-      typing.remove();
-      addMessage(replyTo(text), 'assistant');
-    }, 500 + Math.random() * 500);
-  });
-}

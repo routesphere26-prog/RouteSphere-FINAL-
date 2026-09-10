@@ -209,7 +209,7 @@ const INDUSTRY_TICKERS = {
     { symbol: 'UAA', name: 'Under Armour' },
     { symbol: 'GAP', name: 'Gap Inc.' },
     { symbol: 'COLM', name: 'Columbia Sportswear' },
-    { symbol: 'HBI', name: 'Hanesbrands' }
+    { symbol: 'CRI', name: 'Carter\'s' }
   ],
   electronics: [
     { symbol: 'AAPL', name: 'Apple' },
@@ -267,35 +267,45 @@ const QUOTE_CACHE_TTL_MS = 8000;
 const QUOTE_TIMEOUT_MS = 6000;
 const quoteCache = new Map(); // symbol -> { price, change, changePercent, fetchedAt }
 
+async function fetchQuote(symbol) {
+  const resp = await fetch(
+    `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${process.env.FINNHUB_API_KEY}`,
+    { signal: AbortSignal.timeout(QUOTE_TIMEOUT_MS) }
+  );
+  if (!resp.ok) throw new Error(`Finnhub HTTP ${resp.status}`);
+  const q = await resp.json();
+  if (typeof q.c !== 'number' || q.c <= 0) throw new Error('No usable quote data');
+  return {
+    price: q.c,
+    change: typeof q.d === 'number' ? q.d : null,
+    changePercent: typeof q.dp === 'number' ? q.dp : null
+  };
+}
+
 async function getQuoteForTicker(ticker) {
   const cached = quoteCache.get(ticker.symbol);
   if (cached && (Date.now() - cached.fetchedAt) < QUOTE_CACHE_TTL_MS) {
     return { symbol: ticker.symbol, name: ticker.name, price: cached.price, change: cached.change, changePercent: cached.changePercent };
   }
 
-  try {
-    const resp = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker.symbol)}&token=${process.env.FINNHUB_API_KEY}`,
-      { signal: AbortSignal.timeout(QUOTE_TIMEOUT_MS) }
-    );
-    if (!resp.ok) throw new Error(`Finnhub HTTP ${resp.status}`);
-    const q = await resp.json();
-    if (typeof q.c !== 'number' || q.c <= 0) throw new Error('No usable quote data');
-
-    const result = {
-      price: q.c,
-      change: typeof q.d === 'number' ? q.d : null,
-      changePercent: typeof q.dp === 'number' ? q.dp : null
-    };
-    quoteCache.set(ticker.symbol, { ...result, fetchedAt: Date.now() });
-    return { symbol: ticker.symbol, name: ticker.name, ...result };
-  } catch (err) {
-    console.error(`Finnhub quote failed for ${ticker.symbol}:`, err.message);
-    if (cached) {
-      return { symbol: ticker.symbol, name: ticker.name, price: cached.price, change: cached.change, changePercent: cached.changePercent };
+  const maxAttempts = 2;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await fetchQuote(ticker.symbol);
+      quoteCache.set(ticker.symbol, { ...result, fetchedAt: Date.now() });
+      return { symbol: ticker.symbol, name: ticker.name, ...result };
+    } catch (err) {
+      console.error(`Finnhub quote failed for ${ticker.symbol}:`, err.message);
+      // "No usable quote data" means Finnhub has no data for this symbol at all — retrying won't help.
+      if (err.message === 'No usable quote data' || attempt === maxAttempts) break;
+      await new Promise(r => setTimeout(r, 400));
     }
-    return null;
   }
+
+  if (cached) {
+    return { symbol: ticker.symbol, name: ticker.name, price: cached.price, change: cached.change, changePercent: cached.changePercent };
+  }
+  return null;
 }
 
 async function getQuotesForIndustry(pool, excludeSet) {
