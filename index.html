@@ -59,9 +59,9 @@
         <h2>About <span class="text-accent">RouteSphere</span></h2>
         <button class="panel-close" data-close="panel">×</button>
       </div>
-      <p>RouteSphere is redefining how businesses make supply chain decisions. We bridge the gap between emerging businesses and logistics infrastructure, providing seamless access to verified warehouse spaces across the globe.</p>
-      <p>Our platform combines real-time market data, AI-powered matching algorithms, and industry insights to help you find the perfect warehouse partner for your growing business needs.</p>
-      <p>We understand the challenges startups face in scaling their operations. By making these trade-offs transparent and understandable, RouteSphere gives businesses the clarity and confidence to scale smarter.</p>
+      <p>RouteSphere helps emerging businesses make smarter supply chain decisions, without needing a supply-chain team. It started with my family's textile business, where knowing where demand was and where to keep stock was always a guess.</p>
+      <p>Our platform maps where demand for your industry is concentrated using U.S. Census data, then finds and ranks real warehouses near those buyers. Each match comes with a plain-English explanation of why it ranked where it did, alongside live market data for your industry.</p>
+      <p>We know small businesses can't afford to guess. By making these trade-offs clear, RouteSphere gives them the confidence to scale smarter.</p>
     </div>
   </div>
 
@@ -122,25 +122,20 @@
       </div>
 
       <div class="hero-copy">
-        <p class="hero-eyebrow">Global Logistics Intelligence</p>
+        <p class="hero-eyebrow">Logistics Intelligence for Small Business</p>
         <h1 class="hero-title">
           <span class="ht-line ht-line-1">CONNECTING</span>
-          <span class="ht-line ht-line-2">BUSINESSES</span>
-          <span class="ht-line ht-line-3 accent-line">WITH WAREHOUSES</span>
+          <span class="ht-line ht-line-2">BUSINESSES WITH</span>
+          <span class="ht-line ht-line-3 accent-line">THEIR MARKETS</span>
         </h1>
-        <p class="hero-desc">The platform for emerging businesses to discover, connect, and partner with verified warehouse facilities worldwide. Real-time pricing, instant matching, seamless logistics.</p>
+        <p class="hero-desc">The platform for emerging businesses to find where demand lives and the warehouses closest to it. Demand mapping, smart matching, live market data.</p>
         <div class="hero-cta-row">
-          <a href="#get-started" class="cta-primary">Find a Warehouse</a>
+          <a href="#get-started" class="cta-primary">Find Your Markets</a>
           <a href="#live-insights" class="cta-secondary">Live Market Data →</a>
         </div>
       </div>
 
       <div class="hero-stats">
-        <div class="stat-item">
-          <span class="stat-num">500+</span>
-          <span class="stat-label">Warehouses</span>
-        </div>
-        <div class="stat-divider"></div>
         <div class="stat-item">
           <span class="stat-num">6</span>
           <span class="stat-label">Industries</span>
@@ -173,20 +168,62 @@
       <div class="insight-cards" id="insightsCards"></div>
     </section>
 
-    <!-- TRUSTED -->
-    <section class="trusted-section">
-      <div class="trusted-panel">
-        <div class="trusted-label">Our Network</div>
-        <h3 class="trusted-title">COMMUNITY <span class="text-accent">PARTNERS</span></h3>
-        <p class="trusted-subtitle">More To Come Soon</p>
-      </div>
-    </section>
-
     <!-- GET STARTED -->
     <section class="get-started" id="get-started">
       <div class="section-tag">Get Started</div>
       <div class="get-started-header">
-        <h2 class="gs-title">FIND YOUR IDEAL<br/><span class="text-accent">WAREHOUSE PARTNER</span></h2>
+        <h2 class="gs-title">FIND WHERE<br/><span class="text-accent">TO SELL</span></h2>
+        <p class="gs-sub">Tell us what you sell and where you're based. We'll show you where demand is, and how to get there.</p>
+      </div>
+
+      <form id="demandForm" class="demand-form">
+        <label>What do you sell?
+          <select name="industry" id="demandIndustry">
+            <option value="textiles">Textiles</option>
+            <option value="electronics">Electronics</option>
+            <option value="foodbeverage">Food & Beverage</option>
+            <option value="pharmaceuticals">Pharmaceuticals</option>
+            <option value="automotiveparts">Automotive Parts</option>
+            <option value="generalgoods">General Goods</option>
+          </select>
+        </label>
+        <fieldset class="demand-home">
+          <legend>Where are you based?</legend>
+          <select name="state" id="demandState" aria-label="State" class="is-empty"></select>
+          <input name="city" id="demandCity" list="demandCityOptions" placeholder="Select a state first" aria-label="City" autocomplete="off" disabled />
+          <datalist id="demandCityOptions"></datalist>
+        </fieldset>
+        <div class="demand-scope">
+          <span class="demand-scope-label">Show</span>
+          <input type="hidden" name="scope" id="demandScope" value="state" />
+          <div class="location-buttons">
+            <button type="button" class="location-option active" data-scope="state">Counties in my state</button>
+            <button type="button" class="location-option" data-scope="national">U.S. metro areas</button>
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="primary-button">Find My Markets</button>
+          <button type="button" id="resetDemand" class="secondary-button">Reset</button>
+        </div>
+      </form>
+      <p class="demand-label">Estimated demand based on U.S. Census data (updated annually).</p>
+      <p class="direct-search-link"><a href="#direct-search">Already know where you’re selling? Search warehouses directly →</a></p>
+
+      <div id="demandStatus" class="demand-status hidden"></div>
+      <div class="demand-sort hidden" id="demandSort">
+        <span class="demand-scope-label">Sort by</span>
+        <div class="location-buttons">
+          <button type="button" class="location-option active" data-sort="best">Best match</button>
+          <button type="button" class="location-option" data-sort="buyers">Most buyers</button>
+          <button type="button" class="location-option" data-sort="closest">Closest</button>
+        </div>
+      </div>
+      <div class="demand-results" id="demandResults"></div>
+      <p class="demand-source hidden" id="demandSource"></p>
+
+      <div class="direct-search-header" id="direct-search">
+        <h3 class="direct-search-title">Already know where you’re selling?</h3>
+        <p class="gs-sub">Search warehouses directly.</p>
       </div>
 
       <form id="filterForm" class="filter-form">
@@ -232,33 +269,15 @@
                 <option value="WI">Wisconsin</option><option value="WY">Wyoming</option>
               </select>
             </label>
-            <label>Radius (miles)
-              <input type="number" name="radius" id="radiusInput" min="0" step="any" placeholder="e.g. 25" />
+            <label>Radius (mi)
+              <input type="number" name="radius" id="radiusInput" min="0" step="any" placeholder="Optional, e.g. 25" />
             </label>
           </div>
         </div>
 
-        <div class="range-row">
-          <label>Price Min ($)<input type="number" name="priceMin" min="0" step="100" placeholder="0" /></label>
-          <label>Price Max ($)<input type="number" name="priceMax" min="0" step="100" placeholder="50000" /></label>
-        </div>
-        <div class="range-row">
-          <label>Size Min (sq ft)<input type="number" name="sizeMin" min="0" step="100" placeholder="0" /></label>
-          <label>Size Max (sq ft)<input type="number" name="sizeMax" min="0" step="100" placeholder="10000" /></label>
-        </div>
-
         <div class="filter-row">
-          <label class="autocomplete-field">Availability
-            <input type="text" name="availability" id="availabilityInput" placeholder="Search availability" autocomplete="off" />
-            <div class="autocomplete-help hidden" id="availabilityHelper"></div>
-          </label>
-          <label class="autocomplete-field">Material
-            <input type="text" name="material" id="materialInput" placeholder="e.g. beds, batteries, electronics" autocomplete="off" />
-            <div class="autocomplete-help hidden" id="materialHelper"></div>
-          </label>
           <label>Type
             <select name="type">
-              <option value="">Select warehouse type</option>
               <option value="any">No Preference</option>
               <option value="climate-controlled">Climate Controlled</option>
               <option value="cold-storage">Cold Storage</option>
@@ -305,7 +324,8 @@
     <div class="results-screen-inner">
       <div class="results-header">
         <h2>Your Warehouse Results</h2>
-        <p>Your top 3 matches, scored and ranked by real ratings, reviews, and AI evaluation.</p>
+        <p>Up to 3 warehouse providers, ranked by how clearly they serve other businesses, then distance, then rating. Stores and company-owned warehouses are filtered out.</p>
+        <div class="results-context hidden" id="resultsContext"></div>
       </div>
       <div class="filter-results" id="resultsList"></div>
     </div>
