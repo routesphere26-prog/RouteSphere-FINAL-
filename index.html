@@ -60,7 +60,7 @@
         <button class="panel-close" data-close="panel">×</button>
       </div>
       <p>RouteSphere helps emerging businesses make smarter supply chain decisions, without needing a supply-chain team. It started with my family's textile business, where knowing where demand was and where to keep stock was always a guess.</p>
-      <p>Our platform maps where demand for your industry is concentrated using U.S. Census data, then finds and ranks real warehouses near those buyers. Each match comes with a plain-English explanation of why it ranked where it did, alongside live market data for your industry.</p>
+      <p>Our platform maps where demand for your industry is concentrated using U.S. Census data, then finds and ranks real warehouses near those buyers. Each match comes with a plain-English explanation of why it ranked where it did, alongside stock data for public companies in your industry.</p>
       <p>We know small businesses can't afford to guess. By making these trade-offs clear, RouteSphere gives them the confidence to scale smarter.</p>
     </div>
   </div>
@@ -149,7 +149,7 @@
       <div class="live-header">
         <div class="live-header-left">
           <h2 class="live-title">MARKET<br/><em>INSIGHTS</em></h2>
-          <p class="live-sub">Real-time data · <span id="insightsCountdown">Updated every 10s</span></p>
+          <p class="live-sub">Industry Stock Pulse · public companies in your sector · data via Finnhub</p>
         </div>
         <div class="live-header-right">
           <label class="live-insights-dropdown">
@@ -166,6 +166,7 @@
         </div>
       </div>
       <div class="insight-cards" id="insightsCards"></div>
+      <p class="live-sub">Data: <a href="https://finnhub.io" target="_blank" rel="noopener">Finnhub</a></p>
     </section>
 
     <!-- GET STARTED -->
@@ -247,7 +248,7 @@
             <label>Country
               <input name="country" id="countryInput" placeholder="Country name" />
             </label>
-            <label class="state-field hidden" id="stateField">State
+            <label class="state-field" id="stateField">State
               <select name="state" id="stateSelect">
                 <option value="">Select state</option>
                 <option value="AL">Alabama</option><option value="AK">Alaska</option><option value="AZ">Arizona</option>

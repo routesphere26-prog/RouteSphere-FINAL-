@@ -100,7 +100,8 @@ function initLocationToggle() {
   if (countryInput && stateField) {
     countryInput.addEventListener('input', () => {
       const val = countryInput.value.trim().toLowerCase();
-      const isUS = val === 'us' || val === 'usa' || val === 'united states' || val === 'united states of america';
+      // State only applies to the United States; shown while Country is still empty too.
+      const isUS = val === '' || val === 'us' || val === 'usa' || val === 'united states' || val === 'united states of america';
       stateField.classList.toggle('hidden', !isUS);
     });
   }
@@ -169,7 +170,7 @@ function initFilterForm() {
     document.getElementById('dontCareBtn')?.classList.remove('active');
     document.getElementById('locationPreference').value = 'specific';
     document.getElementById('locationFields')?.classList.remove('hidden');
-    document.getElementById('stateField')?.classList.add('hidden');
+    document.getElementById('stateField')?.classList.remove('hidden'); // Country is empty again after reset
     warning?.classList.add('hidden');
     filterResults.innerHTML = '';
   });
