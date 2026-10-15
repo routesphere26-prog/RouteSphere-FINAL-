@@ -192,7 +192,7 @@ function classifyPlace(place, local = null) {
     return { excluded: 'real estate / office listing' };
   }
 
-  const typeNote = isStorage ? 'Google lists it as a storage business' : 'Google lists it as a moving & storage business';
+  const typeNote = 'Google category: storage/logistics';
 
   // Consumer self-storage and movers are excluded outright, not ranked last.
   const consumerWord = name.match(SELF_STORAGE_NAME)?.[0] || name.match(CONSUMER_NAME)?.[0] || localMatch('selfStorage');
@@ -348,6 +348,9 @@ async function fetchPlaces(criteria, origin, radiusMiles, local) {
 const MAX_WAREHOUSE_RESULTS = 3;
 const LIMITED_INFO_MAX_REVIEWS = 2; // 0–2 Google reviews: too little to judge the listing
 const DISTANCE_BAND_MILES = 5; // providers this close together count as equally near; rating breaks the tie
+// Below this rating (with enough reviews to trust it), a result ranks after every better-rated one.
+const LOW_RATING = 3.5;
+const LOW_RATING_MIN_REVIEWS = 5;
 
 app.post('/api/warehouse-search', async (req, res) => {
   if (!process.env.GOOGLE_MAPS_API_KEY) {
@@ -418,7 +421,8 @@ app.post('/api/warehouse-search', async (req, res) => {
         distanceMiles,
         rankDistanceMiles: rankFrom && point ? roundMiles(milesBetween(rankFrom, point)) : null,
         regionDistanceMiles: regionPoint && point ? roundMiles(milesBetween(point, regionPoint)) : null,
-        strength: ratingStrength(place)
+        strength: ratingStrength(place),
+        lowRated: (place.rating || 0) < LOW_RATING && (place.user_ratings_total || 0) >= LOW_RATING_MIN_REVIEWS
       });
     }
 
@@ -427,13 +431,14 @@ app.post('/api/warehouse-search', async (req, res) => {
       filtered.forEach(([name, why]) => console.log(`  - ${name}: ${why}`));
     }
 
-    // Relevance first (tier, boosted for the requested type), then distance in 5-mile bands,
-    // then rating strength as the tiebreaker.
+    // Results rated below 3.5★ (5+ reviews) go after all others; then relevance (tier, boosted for
+    // the requested type), then distance in 5-mile bands, then rating strength as the tiebreaker.
     const relevance = w => w.tier +
       (w.typeConfirmedBy ? TYPE_CONFIRMED_BOOST : 0) +
       (w.typeSearchMatch ? TYPE_SEARCH_BOOST : 0);
     const band = d => (d === null ? Infinity : Math.floor(d / DISTANCE_BAND_MILES));
     providers.sort((a, b) =>
+      Number(a.lowRated) - Number(b.lowRated) ||
       relevance(b) - relevance(a) ||
       band(a.rankDistanceMiles) - band(b.rankDistanceMiles) ||
       b.strength - a.strength
@@ -455,6 +460,7 @@ app.post('/api/warehouse-search', async (req, res) => {
       }
       if (w.rankDistanceMiles !== null) bits.push(`${w.rankDistanceMiles} mi from ${rankFromLabel}`);
       if (w.reviewCount) bits.push(`${w.rating.toFixed(1)}★ from ${w.reviewCount} review${w.reviewCount === 1 ? '' : 's'}`);
+      if (w.lowRated) bits.push(`rated below ${LOW_RATING}★, so ranked after better-rated providers`);
       w.rankReason = bits.join(' · ');
     });
 
@@ -471,7 +477,7 @@ app.post('/api/warehouse-search', async (req, res) => {
         : `${count} found for this search.`);
     }
 
-    const warehouses = results.map(({ strength, rankDistanceMiles, typeConfirmedBy, typeSearchMatch, ...w }) => w);
+    const warehouses = results.map(({ strength, rankDistanceMiles, typeConfirmedBy, typeSearchMatch, lowRated, ...w }) => w);
     res.json({ warehouses, radiusMiles: applyRadius ? radiusMiles : null, demand, notices });
   } catch (err) {
     console.error('Warehouse search failed:', err.message);
