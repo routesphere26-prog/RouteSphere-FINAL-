@@ -124,20 +124,20 @@ const TYPE_SEARCH_BOOST = 1;
 const TIER_LABELS = {
   5: '3PL / warehousing provider',
   4: 'Logistics company with storage',
-  3: 'Storage company',
-  2: 'Storage business (Google listing)',
-  1: 'Logistics company, confirm they offer storage',
-  0: 'Self-storage, best for small inventory'
+  1: 'Logistics company, confirm they offer storage'
 };
-const CAUTION_TIERS = new Set([0, 1]);
+const CAUTION_TIERS = new Set([1]);
 
-// Returns { tier, evidence } for a provider, or { excluded: reason } for anything we shouldn't show.
-// Missing a real provider is worse than showing one the user can rule out, so logistics
-// companies without a storage listing are kept (tier 1, flagged) rather than dropped.
-//   5: name says warehousing/3PL/fulfillment       4: logistics name + Google "storage" type
-//   3: storage name + storage/moving type, or storage type found by 2+ provider searches
-//   2: storage/moving type only                     1: logistics name, storage unconfirmed
-//   0: self-storage (ranked last, tagged for small inventory)
+// Consumer storage and moving businesses: never shown as B2B warehouse providers.
+const CONSUMER_NAME = /\b(moving|movers?|two men and a truck|pods|trailer leasing|truck rentals?)\b/i;
+// A result must name one of these to count as a B2B warehouse; "Storage" alone isn't enough.
+const B2B_NAME = /\b(contract warehousing|warehousing|warehouses?|3pl|fulfill?(ment)?|logistics|logistiek|logistik|logistique|distribution|freight|cold[\s-]?(storage|stores?)|public warehouse|cross-?dock)\b/i;
+
+// Returns { tier, evidence } for a B2B warehouse provider, or { excluded: reason } for anything
+// we shouldn't show. Every result must name a B2B warehouse term (B2B_NAME or the local equivalent).
+//   5: name says warehousing/3PL/fulfillment/cold storage   → "3PL / warehousing provider"
+//   4: logistics/freight/distribution name + Google "storage" or moving type
+//   1: logistics/freight/distribution name, storage unconfirmed (kept so real 3PLs aren't missed)
 const GENERIC_WORDS = [PROVIDER_NAME, LOGISTICS_NAME, STORAGE_NAME, FACILITY_LABEL, ...Object.values(TYPE_KEYWORDS)]
   .map(re => new RegExp(re.source, 'giu'));
 
@@ -152,7 +152,7 @@ function hasBusinessName(name, local) {
 }
 
 // `local` is the compiled vocabulary for the search country's language (or null for English).
-function classifyPlace(place, matchedQueries, local = null) {
+function classifyPlace(place, local = null) {
   const name = place.name || '';
   const localMatch = (key, text = name) => (local ? local[key].match(text) : null);
   const types = new Set(place.types || []);
@@ -194,29 +194,23 @@ function classifyPlace(place, matchedQueries, local = null) {
 
   const typeNote = isStorage ? 'Google lists it as a storage business' : 'Google lists it as a moving & storage business';
 
-  const selfStorageWord = name.match(SELF_STORAGE_NAME)?.[0] || localMatch('selfStorage');
-  if (selfStorageWord) {
-    return { tier: 0, evidence: `self-storage ("${selfStorageWord}")` };
-  }
+  // Consumer self-storage and movers are excluded outright, not ranked last.
+  const consumerWord = name.match(SELF_STORAGE_NAME)?.[0] || name.match(CONSUMER_NAME)?.[0] || localMatch('selfStorage');
+  if (consumerWord) return { excluded: `consumer storage/moving ("${consumerWord}")` };
+
+  const b2bWord = name.match(B2B_NAME)?.[0] || localMatch('provider') || localMatch('logistics') ||
+    name.match(TYPE_KEYWORDS['cold-storage'])?.[0] || (local ? local.type['cold-storage'].match(name) : null);
+  // Google tags many real 3PLs as moving companies, so the type only excludes without a B2B term.
+  if (types.has('moving_company') && !b2bWord) return { excluded: 'moving company (Google type, no B2B warehouse term)' };
+  if (!b2bWord) return { excluded: 'no B2B warehouse term in name' };
+
   if (providerWord) {
     return { tier: 5, evidence: [`name says "${providerWord}"`, hasStorageType && typeNote].filter(Boolean).join('; ') };
   }
-  if (logisticsWord && isStorage) {
-    return { tier: 4, evidence: `name says "${logisticsWord}"; ${typeNote}` };
-  }
-  if (hasStorageType && storageWord) {
-    return { tier: 3, evidence: `name says "${storageWord}"; ${typeNote}` };
-  }
-  if (isStorage && matchedQueries.size >= 2) {
-    return { tier: 3, evidence: `${typeNote}; matched ${matchedQueries.size} of our provider searches` };
-  }
   if (hasStorageType) {
-    return { tier: 2, evidence: logisticsWord ? `name says "${logisticsWord}"; ${typeNote}` : typeNote };
+    return { tier: 4, evidence: `name says "${b2bWord}"; ${typeNote}` };
   }
-  if (logisticsWord) {
-    return { tier: 1, evidence: `name says "${logisticsWord}"; no storage listing on Google` };
-  }
-  return { excluded: 'no provider or storage signal' };
+  return { tier: 1, evidence: `name says "${b2bWord}"; no storage listing on Google` };
 }
 
 function milesBetween(a, b) {
@@ -259,7 +253,11 @@ async function geocodeAddress(address) {
 async function geocodeOrigin(criteria) {
   if (criteria.locationPreference !== 'specific') return null;
   const loc = [criteria.location, criteria.state, criteria.country].filter(Boolean).join(', ');
-  return geocodeAddress(loc);
+  const origin = await geocodeAddress(loc);
+  console.log(origin
+    ? `Search origin "${loc}" → ${origin.lat.toFixed(5)}, ${origin.lng.toFixed(5)} (${origin.types.join(', ')})`
+    : `Search origin "${loc}" → not found`);
+  return origin;
 }
 
 function parseRadiusMiles(value) {
@@ -397,7 +395,7 @@ app.post('/api/warehouse-search', async (req, res) => {
         filtered.push([place.name, `outside ${radiusMiles} mi radius`]);
         continue;
       }
-      const cls = classifyPlace(place, matchedQueries, local);
+      const cls = classifyPlace(place, local);
       if (cls.excluded) {
         filtered.push([place.name, cls.excluded]);
         continue;
@@ -465,11 +463,12 @@ app.post('/api/warehouse-search', async (req, res) => {
       notices.push(`No providers near ${near} confirm ${TYPE_LABELS[criteria.type].toLowerCase()} by name. Showing general providers. Ask each one directly.`);
     }
 
-    const where = applyRadius ? `within ${radiusMiles} mi` : 'for this search';
+    // Never pad with excluded places; say how many real B2B warehouses there are instead.
     if (results.length < MAX_WAREHOUSE_RESULTS) {
-      notices.push(results.length
-        ? `Only ${results.length} warehouse provider${results.length === 1 ? '' : 's'} found ${where}. We don't fill the list with stores or company-owned warehouses.`
-        : `No warehouse providers found ${where}. We don't show stores or company-owned warehouses as matches.`);
+      const count = results.length ? `Only ${results.length} B2B warehouse${results.length === 1 ? '' : 's'}` : 'No B2B warehouses';
+      notices.push(applyRadius
+        ? `${count} found within ${radiusMiles} mi. Try a larger radius.`
+        : `${count} found for this search.`);
     }
 
     const warehouses = results.map(({ strength, rankDistanceMiles, typeConfirmedBy, typeSearchMatch, ...w }) => w);
